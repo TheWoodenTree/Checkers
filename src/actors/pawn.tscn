@@ -1,14 +1,25 @@
-[gd_scene load_steps=5 format=3 uid="uid://vst42eyy346"]
+[gd_scene load_steps=7 format=3 uid="uid://vst42eyy346"]
 
 [ext_resource type="Texture2D" uid="uid://b7qvtcwjgew6o" path="res://src/assets/pawn.png" id="1_f5x7c"]
 [ext_resource type="Script" path="res://src/actors/pawn.gd" id="1_ocmtk"]
 [ext_resource type="Shader" path="res://src/assets/select_shader.gdshader" id="2_k43a7"]
+[ext_resource type="Texture2D" uid="uid://wprsu1bo2nhp" path="res://src/assets/crown.png" id="4_bfl5m"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_uudse"]
 resource_local_to_scene = true
 shader = ExtResource("2_k43a7")
-shader_parameter/elapsedTime = null
-shader_parameter/selected = null
+shader_parameter/elapsedTime = 0.0
+shader_parameter/floatScale = 0.0
+shader_parameter/selected = false
+shader_parameter/shakeScale = 0.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_4qdqy"]
+resource_local_to_scene = true
+shader = ExtResource("2_k43a7")
+shader_parameter/elapsedTime = 0.0
+shader_parameter/floatScale = 0.0
+shader_parameter/selected = false
+shader_parameter/shakeScale = 0.0
 
 [node name="pawn" type="Node2D"]
 script = ExtResource("1_ocmtk")
@@ -16,3 +27,8 @@ script = ExtResource("1_ocmtk")
 [node name="sprite" type="Sprite2D" parent="."]
 material = SubResource("ShaderMaterial_uudse")
 texture = ExtResource("1_f5x7c")
+
+[node name="crown" type="Sprite2D" parent="."]
+visible = false
+material = SubResource("ShaderMaterial_4qdqy")
+texture = ExtResource("4_bfl5m")

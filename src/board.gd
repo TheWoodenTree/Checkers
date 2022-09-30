@@ -1,5 +1,7 @@
 extends Node2D
 
+const P1_TURN: int = 0
+const P2_TURN: int = 1
 const BOARD_SIZE: int = 1024
 @warning_ignore(integer_division)
 const TILE_SIZE: int = BOARD_SIZE / 8
@@ -9,10 +11,16 @@ var tiles_dict: Dictionary
 var white_pawns: Array
 var black_pawns: Array
 
+var turn = P1_TURN
+
 var last_selected_pawn: Pawn = null
 var selected_pawn: Pawn = null
 
 var pawn_preload = preload("res://src/actors/pawn.tscn")
+
+@onready var ai = $ai
+
+signal turn_ended
 
 
 class Tile:
@@ -54,7 +62,7 @@ class Tile:
 	func is_selected():
 		return selected
 	
-	func is_col_row(r, c):
+	func is_row_col(r, c):
 		return row == r and col == c
 	
 	func init_adj_tiles():
@@ -81,45 +89,40 @@ class Tile:
 
 func _ready():
 	_generate_board()
+	ai.connect("turn_ended", switch_turns)
+	self.connect("turn_ended", switch_turns)
 
 
 func _process(_delta):
 	pass
 
 
+func switch_turns():
+	if turn == P1_TURN:
+		turn = P2_TURN
+	else:
+		turn = P1_TURN
+
+
 func _generate_board():
 	for row in range(1, 9):
 		for col in range(1, 9):
 			var new_tile = Tile.new(9 - row, col, self)
-			#await get_tree().create_timer(0.5).timeout
 			tiles.append(new_tile)
 			tiles_dict[Vector2i(9 - row, col)] = new_tile
-			#print(Vector2i(new_tile.row + 1, new_tile.col + 1))
-			#print(tiles_dict.has(Vector2i(new_tile.row + 1, new_tile.col + 1)))
 	
 	for tile in tiles:
 		for tile2 in tiles:
-			if tile2.is_col_row(tile.col + 1, tile.row + 1):
+			if tile2.is_row_col(tile.row + 1, tile.col + 1):
 				tile.ne = tile2
-			elif tile2.is_col_row(tile.col -1, tile.row + 1):
+			elif tile2.is_row_col(tile.row + 1, tile.col - 1):
 				tile.nw = tile2
-			elif tile2.is_col_row(tile.col - 1, tile.row - 1):
+			elif tile2.is_row_col(tile.row - 1, tile.col - 1):
 				tile.sw = tile2
-			elif tile2.is_col_row(tile.col + 1, tile.row - 1):
+			elif tile2.is_row_col(tile.row - 1, tile.col + 1):
 				tile.se = tile2
 	
 	_place_pawns()
-	for tile in tiles:
-		if tile.ne != null:
-			print(str(tile.row) + " " + str(tile.ne.row))
-		if tile.nw != null:
-			print(tile.title + " " + tile.nw.title)
-		if tile.sw != null:
-			print(tile.title + " " + tile.sw.title)
-		if tile.se != null:
-			print(tile.title + " " + tile.se.title)
-		print("")
-	
 
 
 func _place_pawns():
@@ -130,7 +133,6 @@ func _place_pawns():
 		if row != 4 and row != 5 and (row + col) % 2 != 0:
 			#await get_tree().create_timer(0.1).timeout
 			var pawn = pawn_preload.instantiate()
-			pawn.position = tile.pos
 			if row >= 6:
 				pawn.get_node("sprite").modulate = Color.ORANGE_RED
 				pawn.color = "black"
@@ -140,33 +142,53 @@ func _place_pawns():
 				pawn.color = "white"
 				white_pawns.append(pawn)
 			tile.pawn = pawn
+			pawn.init(tile)
+			pawn.connect("pawn_moved", update_pawns)
 			add_child(pawn)
+	update_pawns()
+
+
+func update_pawns():
+	for pawn in white_pawns:
+		pawn.update_valid_moves()
+	for pawn in black_pawns:
+		pawn.update_valid_moves()
 
 
 func _unhandled_input(event):
 	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_LEFT and event.is_pressed():
+		if event.button_index == MOUSE_BUTTON_LEFT and event.is_pressed() and turn == P1_TURN:
 			var pos = event.position
-			var pawn_found = false
 			for tile in tiles:
-				# Check to see which tile is selected, check to see if it has a
-				# pawn on it, check to see if that pawn is white, and check to 
-				# see if that pawn is not already selected
-				if tile.rect.has_point(pos) and tile.has_pawn() and \
-				tile.pawn.color == "white" and not tile.pawn.selected:
-					selected_pawn = tile.pawn
-					# If a different pawn is selected, deselect last pawn
-					if selected_pawn != last_selected_pawn and last_selected_pawn != null:
-						last_selected_pawn.set_selected(false)
-					last_selected_pawn = selected_pawn
-					selected_pawn.set_selected(true)
-					pawn_found = true
-					print(tile.title + ": " + str(tile.row) + ", " + str(tile.col))
-					print("ne: " + tile.ne.title)
-					break
-			if not pawn_found and selected_pawn != null:
+				if tile.rect.has_point(pos):
+					if tile.has_pawn() and tile.pawn.color == "white" and not tile.pawn.selected:
+						selected_pawn = tile.pawn
+						if selected_pawn != last_selected_pawn and last_selected_pawn != null:
+							last_selected_pawn.set_selected(false)
+						last_selected_pawn = selected_pawn
+						selected_pawn.set_selected(true)
+						break
+					elif not tile.has_pawn() and selected_pawn != null:
+						if tile in selected_pawn.valid_move_tiles:
+							selected_pawn.move(tile)
+							if not selected_pawn.just_captured or \
+							selected_pawn.just_captured and not selected_pawn.can_capture:
+								await get_tree().create_timer(Global.MOVE_TIME).timeout
+								emit_signal("turn_ended")
+								selected_pawn.set_selected(false)
+								selected_pawn.just_captured = false
+								selected_pawn = null
+								last_selected_pawn = null
+						else:
+							selected_pawn.shake()
+		
+		# Deselect pawn with right click
+		elif event.button_index == MOUSE_BUTTON_RIGHT and event.is_pressed():
+			if selected_pawn != null:
 				selected_pawn.set_selected(false)
 				selected_pawn = null
+				last_selected_pawn = null
+
 
 func start_game():
 	pass

@@ -22,8 +22,12 @@ _global_script_class_icons={
 
 config/name="Checkers"
 run/main_scene="res://src/board.tscn"
-config/features=PackedStringArray("4.0", "Vulkan Clustered")
+config/features=PackedStringArray("4.0")
 config/icon="res://icon.svg"
+
+[autoload]
+
+Global="*res://src/actors/global.gd"
 
 [display]
 
