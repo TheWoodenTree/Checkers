@@ -18,8 +18,10 @@ var valid_move_tiles: Array
 var float_scale: float = 0.0
 var shake_scale: float = 0.0
 var capturable_pawns: Dictionary
+var previous_self: Pawn = null
 
 signal pawn_moved
+signal pawn_test_moved
 
 
 func _process(delta):
@@ -82,7 +84,10 @@ func update_valid_moves():
 			if curr_tile.ne.has_pawn() and curr_tile.ne.pawn.color != color \
 			and curr_tile.ne.ne != null and not curr_tile.ne.ne.has_pawn():
 				valid_move_tiles.append(curr_tile.ne.ne)
+				print(capturable_pawns.values())
 				capturable_pawns[curr_tile.ne.ne] = curr_tile.ne.pawn
+				print(capturable_pawns.values())
+				print("")
 				can_capture = true
 			elif not curr_tile.ne.has_pawn() and not can_capture:
 				valid_move_tiles.append(curr_tile.ne)
@@ -91,7 +96,10 @@ func update_valid_moves():
 			if curr_tile.nw.has_pawn() and curr_tile.nw.pawn.color != color \
 			and curr_tile.nw.nw != null and not curr_tile.nw.nw.has_pawn():
 				valid_move_tiles.append(curr_tile.nw.nw)
+				print(capturable_pawns.values())
 				capturable_pawns[curr_tile.nw.nw] = curr_tile.nw.pawn
+				print(capturable_pawns.values())
+				print("")
 				can_capture = true
 			elif not curr_tile.nw.has_pawn() and not can_capture:
 				valid_move_tiles.append(curr_tile.nw)
@@ -101,7 +109,10 @@ func update_valid_moves():
 			if curr_tile.se.has_pawn() and curr_tile.se.pawn.color != color \
 			and curr_tile.se.se != null and not curr_tile.se.se.has_pawn():
 				valid_move_tiles.append(curr_tile.se.se)
+				print(capturable_pawns.values())
 				capturable_pawns[curr_tile.se.se] = curr_tile.se.pawn
+				print(capturable_pawns.values())
+				print("")
 				can_capture = true
 			elif not curr_tile.se.has_pawn() and not can_capture:
 				valid_move_tiles.append(curr_tile.se)
@@ -110,7 +121,10 @@ func update_valid_moves():
 			if curr_tile.sw.has_pawn() and curr_tile.sw.pawn.color != color \
 			and curr_tile.sw.sw != null and not curr_tile.sw.sw.has_pawn():
 				valid_move_tiles.append(curr_tile.sw.sw)
+				print(capturable_pawns.values())
 				capturable_pawns[curr_tile.sw.sw] = curr_tile.sw.pawn
+				print(capturable_pawns.values())
+				print("")
 				can_capture = true
 			elif not curr_tile.sw.has_pawn() and not can_capture:
 				valid_move_tiles.append(curr_tile.sw)
@@ -128,16 +142,31 @@ func update_valid_moves():
 				valid_move_tiles.erase(tile)
 
 
-func move(new_tile):
+func test_move(new_tile):
 	curr_tile.pawn = null
 	curr_tile = new_tile
 	curr_tile.pawn = self
 	if can_capture:
 		capture(capturable_pawns[curr_tile])
+	check_for_king()
+
+
+func undo_move():
+	pass
+
+
+func move(new_tile):
+	var last_tile = curr_tile
+	curr_tile.pawn = null
+	curr_tile = new_tile
+	curr_tile.pawn = self
+	last_tile.update_adj_pawns()
+	curr_tile.update_adj_pawns()
+	if can_capture:
+		capture(capturable_pawns[curr_tile])
 	var move_tween = create_tween().set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
 	move_tween.tween_property(self, "position", curr_tile.pos, Global.MOVE_TIME)
 	check_for_king()
-	emit_signal("pawn_moved")
 
 
 func check_for_king():
@@ -153,10 +182,19 @@ func check_for_king():
 
 
 func capture(captured_pawn):
+	#print("Cunt")
 	if captured_pawn.color == "white":
 		Global.board.white_pawns.erase(captured_pawn)
 	if captured_pawn.color == "black":
 		Global.board.black_pawns.erase(captured_pawn)
+	
+	#print("Dict: ")
+	print(capturable_pawns[curr_tile])
+	capturable_pawns.erase(curr_tile)
 	captured_pawn.curr_tile.pawn = null
+	
+	var captured_pawn_tile = captured_pawn.curr_tile
 	captured_pawn.queue_free()
+	captured_pawn_tile.update_adj_pawns()
+	
 	just_captured = true

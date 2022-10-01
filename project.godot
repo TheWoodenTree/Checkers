@@ -10,11 +10,17 @@ config_version=5
 
 _global_script_classes=[{
 "base": "Node2D",
+"class": &"Board",
+"language": &"GDScript",
+"path": "res://src/board.gd"
+}, {
+"base": "Node2D",
 "class": &"Pawn",
 "language": &"GDScript",
 "path": "res://src/actors/pawn.gd"
 }]
 _global_script_class_icons={
+"Board": "",
 "Pawn": ""
 }
 

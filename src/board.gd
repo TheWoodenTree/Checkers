@@ -1,4 +1,5 @@
 extends Node2D
+class_name Board
 
 const P1_TURN: int = 0
 const P2_TURN: int = 1
@@ -19,6 +20,8 @@ var selected_pawn: Pawn = null
 var pawn_preload = preload("res://src/actors/pawn.tscn")
 
 @onready var ai = $ai
+
+@export var mode: int = Global.AIvsAI
 
 signal turn_ended
 
@@ -85,16 +88,27 @@ class Tile:
 			sw = board.tiles_dict[Vector2i(row - 1, col - 1)]
 		else:
 			sw = null
+	
+	func update_adj_pawns():
+		if ne != null and ne.pawn != null:
+			ne.pawn.update_valid_moves()
+		if nw != null and nw.pawn != null:
+			nw.pawn.update_valid_moves()
+		if se != null and se.pawn != null:
+			se.pawn.update_valid_moves()
+		if sw != null and sw.pawn != null:
+			sw.pawn.update_valid_moves()
 
 
 func _ready():
 	_generate_board()
-	ai.connect("turn_ended", switch_turns)
+	#ai.connect("turn_ended", switch_turns)
 	self.connect("turn_ended", switch_turns)
 
 
 func _process(_delta):
-	pass
+	if Input.is_action_just_pressed("ui_accept"):
+		ai.think(1, null)
 
 
 func switch_turns():
@@ -143,7 +157,6 @@ func _place_pawns():
 				white_pawns.append(pawn)
 			tile.pawn = pawn
 			pawn.init(tile)
-			pawn.connect("pawn_moved", update_pawns)
 			add_child(pawn)
 	update_pawns()
 
