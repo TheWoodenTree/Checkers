@@ -14,14 +14,26 @@ _global_script_classes=[{
 "language": &"GDScript",
 "path": "res://src/board.gd"
 }, {
+"base": "Node",
+"class": &"Move",
+"language": &"GDScript",
+"path": "res://src/actors/move.gd"
+}, {
 "base": "Node2D",
 "class": &"Pawn",
 "language": &"GDScript",
 "path": "res://src/actors/pawn.gd"
+}, {
+"base": "Node",
+"class": &"Tile",
+"language": &"GDScript",
+"path": "res://src/actors/tile.gd"
 }]
 _global_script_class_icons={
 "Board": "",
-"Pawn": ""
+"Move": "",
+"Pawn": "",
+"Tile": ""
 }
 
 [application]

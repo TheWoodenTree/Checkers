@@ -2,7 +2,7 @@ extends Node2D
 
 const CAPTURE_VAL: int = 1
 const KING_VAL: int = 3
-const FUTURE_DEPTH: int = 1
+const FUTURE_DEPTH: int = 0
 
 var turn: int = 1
 var board_copy: Board
@@ -15,72 +15,82 @@ func _ready():
 	Global.board.connect("turn_ended", think.bind(FUTURE_DEPTH, board_copy))
 
 
-func think(depth, board_copy):
-	while Global.board.mode == Global.AIvsAI:
-		if Global.board.turn == Global.board.P1_TURN:
-			pawns = Global.board.white_pawns
-		else:
-			pawns = Global.board.black_pawns
-		moveable_pawns.clear()
-		for pawn in pawns:
-			if pawn.valid_move_tiles.size() > 0:
-				moveable_pawns.append(pawn)
+func think(depth):
+#	while Global.board.mode == Global.AIvsAI:
+#		if Global.board.turn == Global.board.P1_TURN:
+#			pawns = Global.board.white_pawns
+#		else:
+#			pawns = Global.board.black_pawns
+#		moveable_pawns.clear()
+#		for pawn in pawns:
+#			if pawn.valid_moves.size() > 0:
+#				moveable_pawns.append(pawn)
+#
+#		if moveable_pawns.size() > 0:
+#			curr_pawn = moveable_pawns[randi_range(0, moveable_pawns.size() - 1)]
+#			curr_pawn.update_valid_moves()
+#		var num_valid_moves = curr_pawn.valid_moves.size()
+#		var move: Move
+#		var not_moved = true
+#		while not_moved or (curr_pawn.just_captured and curr_pawn.can_capture):
+#			if curr_pawn.valid_moves.size() > 0:
+#				move = curr_pawn.valid_moves[randi_range(0, num_valid_moves - 1)]
+#				curr_pawn.do_move(move)
+#				await get_tree().create_timer(Global.MOVE_TIME).timeout
+#				#curr_pawn.undo_move()
+#				curr_pawn.update_valid_moves()
+#				not_moved = false
+#				num_valid_moves = curr_pawn.valid_moves.size()
+#			else:
+#				break
+#		curr_pawn.just_captured = false
+#		if Global.board.turn == Global.board.P1_TURN:
+#			Global.board.turn = Global.board.P2_TURN
+#		else:
+#			Global.board.turn = Global.board.P1_TURN
+	
+	
+	assume_move(depth)
 
-		if moveable_pawns.size() > 0:
-			curr_pawn = moveable_pawns[randi_range(0, moveable_pawns.size() - 1)]
-			curr_pawn.update_valid_moves()
-		var num_valid_moves = curr_pawn.valid_move_tiles.size()
-		var to_tile
+
+func assume_move(depth):
+	for pawn in Global.board.black_pawns:
+		var num_valid_moves = pawn.valid_moves.size()
 		var not_moved = true
-		while not_moved or (curr_pawn.just_captured and curr_pawn.can_capture):
-			if curr_pawn.valid_move_tiles.size() > 0:
-				await get_tree().create_timer(Global.MOVE_TIME).timeout
-				to_tile = curr_pawn.valid_move_tiles[randi_range(0, num_valid_moves - 1)]
-				curr_pawn.move(to_tile)
-				curr_pawn.update_valid_moves()
+		var num_moves = 0
+		while not_moved or (pawn.just_captured and pawn.can_capture):
+			if num_valid_moves > 0:
+				print("BLACK")
+				var move: Move = pawn.valid_moves[randi_range(0, num_valid_moves - 1)]
+				pawn.do_test_move(move)
+				num_valid_moves = pawn.valid_moves.size()
 				not_moved = false
-				num_valid_moves = curr_pawn.valid_move_tiles.size()
+				num_moves += 1
 			else:
 				break
-		curr_pawn.just_captured = false
-		if Global.board.turn == Global.board.P1_TURN:
-			Global.board.turn = Global.board.P2_TURN
-		else:
-			Global.board.turn = Global.board.P1_TURN
-	
-	
-	
-#	if depth > 0:
-#		#var new_board_copy = board_copy.duplicate()
-#		assume_move(depth, Global.board)
-#	#else:
-#		#board_copy.queue_free()
+			#await get_tree().create_timer(Global.MOVE_TIME).timeout
+			assume_enemy_move(depth)
+			pawn.undo_move(num_moves)
 
 
-func assume_move(depth, board_copy):
-	var initial_board_copy = board_copy#.duplicate()
-	for pawn in board_copy.black_pawns:
-		var num_valid_moves = pawn.valid_move_tiles.size()
-		if num_valid_moves > 0:
-			var to_tile = pawn.valid_move_tiles[randi_range(0, num_valid_moves - 1)]
-			pawn.move(to_tile, true)
-			await get_tree().create_timer(Global.MOVE_TIME).timeout
-			assume_enemy_move(depth, board_copy)
-		#	board_copy = initial_board_copy
-
-
-func assume_enemy_move(depth, board_copy):
-	var initial_board_copy = board_copy#.duplicate()
-	for pawn in board_copy.white_pawns:
-		var num_valid_moves = pawn.valid_move_tiles.size()
-		if num_valid_moves > 0:
-			print(pawn.curr_tile.title)
-			var to_tile = pawn.valid_move_tiles[randi_range(0, num_valid_moves - 1)]
-			pawn.move(to_tile, true)
-			await get_tree().create_timer(Global.MOVE_TIME).timeout
-			think(depth - 1, board_copy)
-		#	board_copy = initial_board_copy
-			
+func assume_enemy_move(depth):
+	for pawn in Global.board.white_pawns:
+		var num_valid_moves = pawn.valid_moves.size()
+		print("WHITE")
+		var not_moved = true
+		var num_moves = 0
+		while not_moved or (pawn.just_captured and pawn.can_capture):
+			if num_valid_moves > 0:
+				var move: Move = pawn.valid_moves[randi_range(0, num_valid_moves - 1)]
+				pawn.do_test_move(move)
+				num_valid_moves = pawn.valid_moves.size()
+				not_moved = false
+				num_moves += 1
+			else:
+				break
+		if depth > 0:
+			think(depth - 1)
+		pawn.undo_move(num_moves)
 
 
 func end_turn():
